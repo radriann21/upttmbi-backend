@@ -3,6 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -102,5 +103,21 @@ export class UsersService {
         'Error crítico al guardar en base de datos',
       );
     }
+  }
+
+  async findByEmail(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new NotFoundException({
+        statusCode: 404,
+        message: 'Usuario no encontrado',
+        error: 'Not Found',
+      });
+    }
+
+    return user;
   }
 }
