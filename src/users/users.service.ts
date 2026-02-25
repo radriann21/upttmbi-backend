@@ -27,7 +27,10 @@ export class UsersService {
     }
 
     try {
-      return await this.prisma.user.create({ data: createUserDto });
+      await this.prisma.user.create({ data: createUserDto });
+      return {
+        message: 'Usuario creado exitosamente',
+      };
     } catch (error) {
       this.logger.error('Error crítico al guardar en base de datos', error);
       throw new InternalServerErrorException(
@@ -74,7 +77,7 @@ export class UsersService {
 
     try {
       return await this.prisma.$transaction(async (tx) => {
-        const newUser = await tx.user.create({
+        await tx.user.create({
           data: {
             name,
             lastName,
@@ -89,7 +92,9 @@ export class UsersService {
           data: { isUsed: true },
         });
 
-        return newUser;
+        return {
+          message: 'Usuario creado exitosamente',
+        };
       });
     } catch (error) {
       this.logger.error('Error crítico al guardar en base de datos', error);
