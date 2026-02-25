@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum PostType {
+  NEWS
+  EVENT
+  OPPORTUNITY
+  EVALUATION
+}
+
+enum AcademicType {
+  THESIS
+  HONORARY_MENTION
+}
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- MODELOS DE USUARIO Y ACCESO ---
+
+model PreRegisteredStudent {
+  id       Int     @id @default(autoincrement())
+  cedula   String  @unique
+  fullName String
+  isUsed   Boolean @default(false)
+  user     User? // Relación 1:1 opcional con el usuario creado
+
+  @@map("pre_registered_students")
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  password String
+  role     Role   @default(STUDENT)
+
+  // Relación con la lista blanca (solo estudiantes)
+  preRegId      Int?                  @unique
+  preRegistered PreRegisteredStudent? @relation(fields: [preRegId], references: [id])
+
+  profile       Profile?
+  posts         Post[]
+  enrollments   Enrollment[]
+  academicWorks AcademicWork[]
+  auditLogs     AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Profile {
+  id        Int     @id @default(autoincrement())
+  bio       String? @db.Text
+  avatarUrl String?
+  userId    Int     @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+// --- MODELOS ACADÉMICOS ---
+
+model Subject {
+  id          Int          @id @default(autoincrement())
+  code        String       @unique
+  name        String
+  enrollments Enrollment[]
+  posts       Post[] // Relación para evaluaciones vinculadas a materias
+
+  @@map("subjects")
+}
+
+model Enrollment {
+  id        Int    @id @default(autoincrement())
+  userId    Int
+  subjectId Int
+  semester  String
+
+  user    User    @relation(fields: [userId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([userId, subjectId, semester]) // Un alumno no se inscribe dos veces a lo mismo el mismo semestre
+  @@map("enrollments")
+}
+
+// --- MODELOS DEL FORO ---
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String   @db.Text
+  type      PostType
+  authorId  Int
+  subjectId Int? // Solo se llena si type == EVALUATION
+
+  author  User     @relation(fields: [authorId], references: [id])
+  subject Subject? @relation(fields: [subjectId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("posts")
+}
+
+model AcademicWork {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String       @db.Text
+  fileUrl     String?
+  type        AcademicType
+  studentId   Int
+  student     User         @relation(fields: [studentId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("academic_works")
+}
+
+// --- MODELO DE AUDITORÍA ---
+
+model AuditLog {
+  id        Int     @id @default(autoincrement())
+  userId    Int?
+  action    String // CREATE, UPDATE, DELETE, LOGIN
+  entity    String // POST, USER, ENROLLMENT
+  entityId  Int?
+  oldValue  Json? // Estado anterior 
+  newValue  Json? // Estado nuevo
+  ipAddress String?
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
