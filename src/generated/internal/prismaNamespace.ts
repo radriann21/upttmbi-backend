@@ -1054,6 +1054,8 @@ export type PreRegisteredStudentScalarFieldEnum = (typeof PreRegisteredStudentSc
 
 export const UserScalarFieldEnum = {
   id: 'id',
+  name: 'name',
+  lastName: 'lastName',
   email: 'email',
   password: 'password',
   role: 'role',

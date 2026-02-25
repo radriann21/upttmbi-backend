@@ -46,6 +46,8 @@ model PreRegisteredStudent {
 
 model User {
   id       Int    @id @default(autoincrement())
+  name     String
+  lastName String
   email    String @unique
   password String
   role     Role   @default(STUDENT)
